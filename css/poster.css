@@ -1,0 +1,68 @@
+/* css/poster.css */
+.seats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.seat {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+.seat img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-bottom: 6px;
+}
+
+.seat-name {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.seat.empty {
+  border: 1px dashed var(--accent-gold);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.question-mark {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--accent-gold);
+}
+
+.pulsing {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.poster-modal {
+  text-align: center;
+}
+
+.poster-preview {
+  width: 100%;
+  border-radius: var(--radius-md);
+  margin: 12px 0;
+  border: 1px solid var(--border-color);
+}
