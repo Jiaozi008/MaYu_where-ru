@@ -32,6 +32,8 @@
 - [x] 2026-07-25 23:35 配置线上部署标准：使用 Cloudflare Pages 官方托管应用域名（`https://mayu-where-ru.pages.dev/`）作为海报二维码扫码连通基准 (`js/poster.js`)。☑️
 - [x] 2026-07-25 23:39 修正新用户初始履约次数：设置新用户首登 `fulfilledCount` 默认为 0 次，并增加自动修正机制清理旧缓存里的 8 次测试数据 (`js/store.js`)。☑️
 - [x] 2026-07-25 23:53 彻底解决线上海报二维码空白问题：精简 `qrcode.js` 二维码矩阵生成引擎（固化标准 Mask 0，补全 `getLengthInBits` 与 `mod` 防 0 崩溃），并在全量 ES Module 引入处增加 `?v=1.8.7` 破除浏览器与 Cloudflare 边缘端旧缓存 (`js/qrcode.js`, `js/poster.js`, `index.html`)。☑️
+- [x] 2026-07-26 00:13 v1.9.1 清除全部测试数据与占位符：`DEFAULT_ROOMS` 改空数组、移除历史强清补丁、默认用户 `wechat`/`phone` 改为空字符串、`hall.js` 清除 4 处 fallback 占位符 (`js/store.js`, `js/hall.js`)。☑️
+- [x] 2026-07-26 00:32 v1.9.2 拼局成功后身份确认方案上线：新增纯前端暗语码生成算法（日期+房间ID+玩家序号哈希，格式：颜色+动物·4位数字，每日自动换码）；联络卡顶部展示当日专属暗语码；发局表单新增可选微信群链接，拼成功联络卡动态展示进群按钮；到场确认升级为输入暗语码验证才触发 `fulfilledCount+1` (`js/store.js`, `js/hall.js`)。☑️
 
 
 

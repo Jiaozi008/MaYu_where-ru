@@ -1,4 +1,4 @@
-// js/hall.js
+﻿// js/hall.js
 import { Store } from './store.js?v=1.8.7';
 import { Geo } from './geo.js?v=1.8.7';
 import { Credit } from './credit.js?v=1.8.7';
@@ -285,8 +285,8 @@ export const Hall = {
       newRoom.players.push({
         name: user.name,
         avatar: user.avatar,
-        wechat: user.wechat || 'my_wx_8888',
-        phone: user.phone || '13899990000'
+        wechat: user.wechat || '',
+        phone: user.phone || ''
       });
       Store.saveRooms(rooms);
       modal.remove();
@@ -404,8 +404,8 @@ export const Hall = {
             room.players.push({
               name: user.name,
               avatar: user.avatar,
-              wechat: user.wechat || 'my_wx_8888',
-              phone: user.phone || '13899990000'
+              wechat: user.wechat || '',
+              phone: user.phone || ''
             });
             Store.saveRooms(rooms);
             this.updateRoomList();
@@ -457,22 +457,44 @@ export const Hall = {
           <button id="btn-modal-nav" class="btn-secondary" style="width:100%; font-size:0.8rem; padding:4px 0;">🗺️ 调起高德/腾讯地图一键导航</button>
         </div>
 
+        <!-- 🀄 接头暗语码区 -->
+        <div style="background:linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06)); border:1px solid rgba(245,158,11,0.35); border-radius:var(--radius-md); padding:12px 14px; margin:8px 0;">
+          <div style="font-size:0.8rem; color:var(--accent-gold); font-weight:bold; margin-bottom:8px;">🀄 你的接头暗语（今日专属）</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div id="my-secret-code" style="font-size:1.3rem; font-weight:bold; letter-spacing:2px; color:var(--text-main);">
+              ${Store.generateSecretCode(room.id, room.players.findIndex(p => p.name === Store.getUser().name))}
+            </div>
+            <button id="btn-copy-code" class="btn-secondary" style="font-size:0.75rem; padding:4px 10px; white-space:nowrap;">📋 复制</button>
+          </div>
+          <p style="font-size:0.72rem; color:var(--text-muted); margin-top:6px; line-height:1.5;">
+            线下见面互报暗语，双方一致即完成身份确认 ✅<br>每日自动换码，今日离场后自动失效。
+          </p>
+        </div>
+
+        <!-- 📱 微信群入口（如局长填写了群链接） -->
+        ${room.wechatGroupUrl ? `
+        <div style="margin:6px 0;">
+          <a id="btn-join-group" href="${room.wechatGroupUrl}" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-align:center; padding:7px 0; font-size:0.85rem; background:linear-gradient(135deg, #07c160, #05a050); text-decoration:none;">
+            💬 点击进入局长的麻友群
+          </a>
+        </div>` : ''}
+
         <div class="compliance-banner" style="margin:8px 0; font-size:0.75rem;">
           <span>⚖️ 提醒：请线下文明娱乐，严禁任何形式赌博。如遇违法行为请及时举报。</span>
         </div>
 
-        <div class="unlocked-contacts-list" style="display:flex; flex-direction:column; gap:10px; margin:12px 0; max-height:220px; overflow-y:auto;">
+        <div class="unlocked-contacts-list" style="display:flex; flex-direction:column; gap:10px; margin:12px 0; max-height:180px; overflow-y:auto;">
           ${room.players.map((p, idx) => `
             <div style="background:var(--bg-primary); border:1px solid var(--border-color); padding:10px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <img class="avatar-sm" src="${p.avatar}" />
                 <div>
                   <div style="font-weight:bold; font-size:0.9rem;">${p.name} ${idx === 0 ? '<span class="tag-location">局长</span>' : ''}</div>
-                  <div style="font-size:0.75rem; color:var(--text-muted);">微信号: <span class="wx-text" style="color:var(--accent-gold);">${p.wechat || 'pangge_888'}</span></div>
+                  <div style="font-size:0.75rem; color:var(--text-muted);">微信号: <span class="wx-text" style="color:var(--accent-gold);">${p.wechat || '未填写'}</span></div>
                 </div>
               </div>
               <div style="display:flex; flex-direction:column; gap:4px;">
-                <button class="btn-secondary btn-copy-wx" style="font-size:0.75rem; padding:3px 8px;" data-wx="${p.wechat || 'pangge_888'}">📋 复制微信</button>
+                <button class="btn-secondary btn-copy-wx" style="font-size:0.75rem; padding:3px 8px;" data-wx="${p.wechat || ''}">📋 复制微信</button>
                 ${idx > 0 ? `<button class="btn-secondary btn-mark-flake" style="font-size:0.72rem; padding:2px 6px; color:var(--danger); border-color:var(--danger);" data-roomid="${room.id}" data-idx="${idx}">⚠️ 没来放鸽子(标记封禁7天)</button>` : ''}
               </div>
             </div>
@@ -480,8 +502,8 @@ export const Hall = {
         </div>
 
         <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--border-color); text-align:center;">
-          <button id="btn-complete-session" class="btn-primary" style="width:100%; background:linear-gradient(135deg, #10b981, #047857);">🎉 麻友到齐/开局 (全员守时履约+1)</button>
-          <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">🛡️ 局长或任意同桌麻友皆可点击；即使忘记点击，超时无投诉系统也将自动为你加 +1 履约勋章。</p>
+          <button id="btn-complete-session" class="btn-primary" style="width:100%; background:linear-gradient(135deg, #10b981, #047857);">✅ 输入暗语确认到场 (履约+1)</button>
+          <p style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">🛡️ 输入自己的暗语码确认到场；超时无投诉系统也将自动为你加 +1 履约勋章。</p>
         </div>
 
         <div class="modal-actions" style="margin-top:12px;">
@@ -492,9 +514,30 @@ export const Hall = {
     document.body.appendChild(modal);
 
     modal.querySelector('#btn-complete-session').onclick = () => {
-      alert(`🎉 恭喜！本局成功开局，同桌 ${room.players.length} 名麻友履约守时勋章 +1！系统已记录良好信用状态。`);
-      modal.remove();
+      const user = Store.getUser();
+      const myIdx = room.players.findIndex(pl => pl.name === user.name);
+      const myCode = Store.generateSecretCode(room.id, myIdx >= 0 ? myIdx : 0);
+      const input = prompt(`🀄 请输入你的接头暗语码确认到场：\n（你的暗语：${myCode}）`);
+      if (input === null) return; // 取消
+      if (input.trim() === myCode) {
+        user.fulfilledCount = (user.fulfilledCount || 0) + 1;
+        Store.saveUser(user);
+        alert(`✅ 暗语核对正确！到场确认成功，履约勋章 +1，当前累计 ${user.fulfilledCount} 次守时记录。`);
+        modal.remove();
+      } else {
+        alert(`❌ 暗语不符，请重新查看联络卡中的"你的接头暗语"后再输入。`);
+      }
     };
+
+    // 复制暗语码按钮
+    const btnCopyCode = modal.querySelector('#btn-copy-code');
+    if (btnCopyCode) {
+      btnCopyCode.onclick = () => {
+        const code = modal.querySelector('#my-secret-code').textContent.trim();
+        if (navigator.clipboard) navigator.clipboard.writeText(code);
+        alert(`📋 暗语码【${code}】已复制！线下见面时互报即可确认身份。`);
+      };
+    }
 
     modal.querySelectorAll('.btn-mark-flake').forEach(btn => {
       btn.onclick = (e) => {
@@ -602,13 +645,17 @@ export const Hall = {
             <input id="input-address" type="text" class="filter-select" style="width:100%; margin-top:4px;" placeholder="如：胖子棋牌室 6号包厢" />
           </div>
           <div>
-            <label style="font-size:0.85rem; color:var(--text-muted);">开局日期与时间段：</label>
+            <label style="font-size:0.85rem; color:var(--text-muted);">⏰ 开局日期与时间段：</label>
             <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
               <input id="input-date" type="date" class="filter-select" style="flex:1.3;" value="${todayStr}" />
               <input id="input-start-time" type="time" class="filter-select" style="flex:1;" value="19:00" />
               <span style="font-size:0.8rem; color:var(--text-muted);">至</span>
               <input id="input-end-time" type="time" class="filter-select" style="flex:1;" value="23:00" />
             </div>
+          </div>
+          <div>
+            <label style="font-size:0.85rem; color:var(--text-muted);">📱 微信群链接（可选）：</label>
+            <input id="input-group-url" type="url" class="filter-select" style="width:100%; margin-top:4px;" placeholder="可选·粘贴微信群邀请链接，拼友上车后可直接进群" />
           </div>
         </div>
         <div class="modal-actions">
@@ -629,6 +676,7 @@ export const Hall = {
       const startTimeVal = modal.querySelector('#input-start-time').value;
       const endTimeVal = modal.querySelector('#input-end-time').value;
       const time = this.formatTimeRange(dateVal, startTimeVal, endTimeVal);
+      const groupUrl = modal.querySelector('#input-group-url').value.trim();
       const user = Store.getUser();
 
       const newRoom = {
@@ -641,20 +689,21 @@ export const Hall = {
         distance: 0.5,
         ruleTag,
         isMerchant: false,
+        wechatGroupUrl: groupUrl,
         host: {
           id: user.id,
           name: user.name,
           avatar: user.avatar,
           creditRate: 100,
           isGold: true,
-          wechat: user.wechat || 'my_wx_8888',
-          phone: user.phone || '13899990000'
+          wechat: user.wechat || '',
+          phone: user.phone || ''
         },
         players: [{
           name: user.name,
           avatar: user.avatar,
-          wechat: user.wechat || 'my_wx_8888',
-          phone: user.phone || '13899990000'
+          wechat: user.wechat || '',
+          phone: user.phone || '',
         }],
         maxPlayers: 4,
         startTime: time,
