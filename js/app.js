@@ -1,6 +1,6 @@
 // js/app.js
-import { Store } from './store.js';
-import { Hall } from './hall.js';
+import { Store } from './store.js?v=1.8.7';
+import { Hall } from './hall.js?v=1.8.7';
 
 document.addEventListener('DOMContentLoaded', () => {
   const user = Store.getUser();

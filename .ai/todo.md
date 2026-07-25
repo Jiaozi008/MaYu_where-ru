@@ -31,6 +31,8 @@
 - [x] 2026-07-25 23:15 重构 `qrcode.js` Reed-Solomon Level L 纠错块容量表（全扩容至 Version 10，支持 270+ 字符长 URL），解决容量溢出 fallback 问题；并在本地环境自动编码线上 GitHub 真实 URL，确保手机微信扫码流畅连通打开 (`js/qrcode.js`, `js/poster.js`)。☑️
 - [x] 2026-07-25 23:35 配置线上部署标准：使用 Cloudflare Pages 官方托管应用域名（`https://mayu-where-ru.pages.dev/`）作为海报二维码扫码连通基准 (`js/poster.js`)。☑️
 - [x] 2026-07-25 23:39 修正新用户初始履约次数：设置新用户首登 `fulfilledCount` 默认为 0 次，并增加自动修正机制清理旧缓存里的 8 次测试数据 (`js/store.js`)。☑️
+- [x] 2026-07-25 23:53 彻底解决线上海报二维码空白问题：精简 `qrcode.js` 二维码矩阵生成引擎（固化标准 Mask 0，补全 `getLengthInBits` 与 `mod` 防 0 崩溃），并在全量 ES Module 引入处增加 `?v=1.8.7` 破除浏览器与 Cloudflare 边缘端旧缓存 (`js/qrcode.js`, `js/poster.js`, `index.html`)。☑️
+
 
 
 

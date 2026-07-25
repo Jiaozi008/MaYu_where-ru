@@ -1,13 +1,13 @@
 // js/hall.js
-import { Store } from './store.js';
-import { Geo } from './geo.js';
-import { Credit } from './credit.js';
-import { Poster } from './poster.js';
-import { Contact } from './contact.js';
-import { Rules } from './rules.js';
-import { Nav } from './nav.js';
-import { Merchant } from './merchant.js';
-import { Alarm } from './alarm.js';
+import { Store } from './store.js?v=1.8.7';
+import { Geo } from './geo.js?v=1.8.7';
+import { Credit } from './credit.js?v=1.8.7';
+import { Poster } from './poster.js?v=1.8.7';
+import { Contact } from './contact.js?v=1.8.7';
+import { Rules } from './rules.js?v=1.8.7';
+import { Nav } from './nav.js?v=1.8.7';
+import { Merchant } from './merchant.js?v=1.8.7';
+import { Alarm } from './alarm.js?v=1.8.7';
 
 export const Hall = {
   selectedArea: '全部商圈',

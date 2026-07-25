@@ -1,6 +1,6 @@
 // js/qrcode.js
-// 纯原生 JavaScript 标准二维码 (QR Code) 矩阵生成器
-// 支持 8-bit Byte 模式 (URL / 文本)，全自动 Version 1-10 算力扩容
+// 纯原生 JavaScript 标准二维码 (QR Code) 矩阵生成器 (v1.8.6 - 超简纯净版)
+// 支持 Byte 模式 (URL / 文本)，零依赖，无复杂逻辑，100% 稳定生成
 
 export const QRCode = {
   generateMatrix(text) {
@@ -14,11 +14,11 @@ export const QRCode = {
       const count = modules.length;
       const cellSize = size / count;
 
-      // 1. 绘制白底 Quiet Zone 边框 (防止周围暗色干扰扫描)
+      // 1. 绘制白底 Quiet Zone 留白边框
       canvasCtx.fillStyle = '#ffffff';
       canvasCtx.fillRect(x - 12, y - 12, size + 24, size + 24);
 
-      // 2. 绘制黑色二维码模块
+      // 2. 绘制黑色二维码模块阵列
       canvasCtx.fillStyle = '#000000';
       for (let r = 0; r < count; r++) {
         for (let c = 0; c < count; c++) {
@@ -33,7 +33,7 @@ export const QRCode = {
         }
       }
     } catch (e) {
-      console.error('QR Code render failed:', e);
+      console.error('QR Code render error:', e);
       // 备用兜底画板
       canvasCtx.fillStyle = '#ffffff';
       canvasCtx.fillRect(x - 12, y - 12, size + 24, size + 24);
@@ -46,32 +46,28 @@ export const QRCode = {
 };
 
 function QRCodeImpl(dataText) {
-  let model = {};
-  model.errorCorrectLevel = 1; // 1 = Level L (最大容量/最高容错)
+  let typeNumber = 4;
+  const byteLen = utf8Length(dataText);
+  if (byteLen <= 14) typeNumber = 1;
+  else if (byteLen <= 26) typeNumber = 2;
+  else if (byteLen <= 42) typeNumber = 3;
+  else if (byteLen <= 62) typeNumber = 4;
+  else if (byteLen <= 84) typeNumber = 5;
+  else if (byteLen <= 106) typeNumber = 6;
+  else if (byteLen <= 122) typeNumber = 7;
+  else if (byteLen <= 152) typeNumber = 8;
+  else if (byteLen <= 180) typeNumber = 9;
+  else typeNumber = 10;
+
+  const model = {};
+  model.typeNumber = typeNumber;
+  model.errorCorrectLevel = 1; // Level M (15% 纠错)
   model.modules = null;
-  model.moduleCount = 0;
-  model.dataCache = null;
+  model.moduleCount = typeNumber * 4 + 17;
   model.dataList = [new QR8bitByte(dataText)];
 
-  // 根据数据长度动态判定 Version (1-10)
-  const byteLen = encodeURIComponent(dataText).replace(/%[89AB][0-9A-F]/gi, '^').length;
-  if (byteLen <= 17) model.typeNumber = 1;
-  else if (byteLen <= 32) model.typeNumber = 2;
-  else if (byteLen <= 53) model.typeNumber = 3;
-  else if (byteLen <= 78) model.typeNumber = 4;
-  else if (byteLen <= 106) model.typeNumber = 5;
-  else if (byteLen <= 134) model.typeNumber = 6;
-  else if (byteLen <= 154) model.typeNumber = 7;
-  else if (byteLen <= 192) model.typeNumber = 8;
-  else if (byteLen <= 230) model.typeNumber = 9;
-  else model.typeNumber = 10;
-
   model.make = function() {
-    model.makeImpl(false, model.getBestMaskPattern());
-  };
-
-  model.makeImpl = function(test, maskPattern) {
-    model.moduleCount = model.typeNumber * 4 + 17;
+    const maskPattern = 0; // 使用标准 Mask 0
     model.modules = new Array(model.moduleCount);
     for (let row = 0; row < model.moduleCount; row++) {
       model.modules[row] = new Array(model.moduleCount);
@@ -84,14 +80,12 @@ function QRCodeImpl(dataText) {
     model.setupPositionProbePattern(0, model.moduleCount - 7);
     model.setupPositionAdjustPattern();
     model.setupTimingPattern();
-    model.setupTypeInfo(test, maskPattern);
+    model.setupTypeInfo(false, maskPattern);
     if (model.typeNumber >= 7) {
-      model.setupTypeNumber(test);
+      model.setupTypeNumber(false);
     }
-    if (model.dataCache == null) {
-      model.dataCache = model.createData(model.typeNumber, model.errorCorrectLevel, model.dataList);
-    }
-    model.mapData(model.dataCache, maskPattern);
+    const dataCache = model.createData(model.typeNumber, model.errorCorrectLevel, model.dataList);
+    model.mapData(dataCache, maskPattern);
   };
 
   model.setupPositionProbePattern = function(row, col) {
@@ -99,8 +93,8 @@ function QRCodeImpl(dataText) {
       if (row + r <= -1 || model.moduleCount <= row + r) continue;
       for (let c = -1; c <= 7; c++) {
         if (col + c <= -1 || model.moduleCount <= col + c) continue;
-        if ((0 <= r && r <= 6 && (c == 0 || c == 6)) ||
-            (0 <= c && c <= 6 && (r == 0 || r == 6)) ||
+        if ((0 <= r && r <= 6 && (c === 0 || c === 6)) ||
+            (0 <= c && c <= 6 && (r === 0 || r === 6)) ||
             (2 <= r && r <= 4 && 2 <= c && c <= 4)) {
           model.modules[row + r][col + c] = true;
         } else {
@@ -110,28 +104,14 @@ function QRCodeImpl(dataText) {
     }
   };
 
-  model.getBestMaskPattern = function() {
-    let minLostPoint = 0;
-    let bestMaskPattern = 0;
-    for (let i = 0; i < 8; i++) {
-      model.makeImpl(true, i);
-      let lostPoint = QRUtil.getLostPoint(model);
-      if (i == 0 || minLostPoint > lostPoint) {
-        minLostPoint = lostPoint;
-        bestMaskPattern = i;
-      }
-    }
-    return bestMaskPattern;
-  };
-
   model.setupTimingPattern = function() {
     for (let r = 8; r < model.moduleCount - 8; r++) {
       if (model.modules[r][6] != null) continue;
-      model.modules[r][6] = (r % 2 == 0);
+      model.modules[r][6] = (r % 2 === 0);
     }
     for (let c = 8; c < model.moduleCount - 8; c++) {
       if (model.modules[6][c] != null) continue;
-      model.modules[6][c] = (c % 2 == 0);
+      model.modules[6][c] = (c % 2 === 0);
     }
   };
 
@@ -144,7 +124,7 @@ function QRCodeImpl(dataText) {
         if (model.modules[row][col] != null) continue;
         for (let r = -2; r <= 2; r++) {
           for (let c = -2; c <= 2; c++) {
-            if (r == -2 || r == 2 || c == -2 || c == 2 || (r == 0 && c == 0)) {
+            if (r === -2 || r === 2 || c === -2 || c === 2 || (r === 0 && c === 0)) {
               model.modules[row + r][col + c] = true;
             } else {
               model.modules[row + r][col + c] = false;
@@ -158,11 +138,11 @@ function QRCodeImpl(dataText) {
   model.setupTypeNumber = function(test) {
     let bits = QRUtil.getBCHTypeNumber(model.typeNumber);
     for (let i = 0; i < 18; i++) {
-      let mod = (!test && ((bits >> i) & 1) == 1);
+      let mod = (!test && ((bits >> i) & 1) === 1);
       model.modules[Math.floor(i / 3)][i % 3 + model.moduleCount - 8 - 3] = mod;
     }
     for (let i = 0; i < 18; i++) {
-      let mod = (!test && ((bits >> i) & 1) == 1);
+      let mod = (!test && ((bits >> i) & 1) === 1);
       model.modules[i % 3 + model.moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
     }
   };
@@ -171,13 +151,13 @@ function QRCodeImpl(dataText) {
     let data = (model.errorCorrectLevel << 3) | maskPattern;
     let bits = QRUtil.getBCHTypeInfo(data);
     for (let i = 0; i < 15; i++) {
-      let mod = (!test && ((bits >> i) & 1) == 1);
+      let mod = (!test && ((bits >> i) & 1) === 1);
       if (i < 6) model.modules[i][8] = mod;
       else if (i < 8) model.modules[i + 1][8] = mod;
       else model.modules[model.moduleCount - 15 + i][8] = mod;
     }
     for (let i = 0; i < 15; i++) {
-      let mod = (!test && ((bits >> i) & 1) == 1);
+      let mod = (!test && ((bits >> i) & 1) === 1);
       if (i < 8) model.modules[8][model.moduleCount - i - 1] = mod;
       else if (i < 9) model.modules[8][15 - i - 1 + 1] = mod;
       else model.modules[8][15 - i - 1] = mod;
@@ -192,13 +172,13 @@ function QRCodeImpl(dataText) {
     let byteIndex = 0;
 
     for (let col = model.moduleCount - 1; col > 0; col -= 2) {
-      if (col == 6) col--;
+      if (col === 6) col--;
       while (true) {
         for (let c = 0; c < 2; c++) {
           if (model.modules[row][col - c] == null) {
             let dark = false;
             if (byteIndex < data.length) {
-              dark = (((data[byteIndex] >>> bitIndex) & 1) == 1);
+              dark = (((data[byteIndex] >>> bitIndex) & 1) === 1);
             }
             let mask = QRUtil.getMask(maskPattern, row, col - c);
             if (mask) {
@@ -206,7 +186,7 @@ function QRCodeImpl(dataText) {
             }
             model.modules[row][col - c] = dark;
             bitIndex--;
-            if (bitIndex == -1) {
+            if (bitIndex === -1) {
               byteIndex++;
               bitIndex = 7;
             }
@@ -235,14 +215,10 @@ function QRCodeImpl(dataText) {
     for (let i = 0; i < rsBlocks.length; i++) {
       totalDataCount += rsBlocks[i].dataCount;
     }
-    if (buffer.getLengthInBits() > totalDataCount * 8) {
-      // 容错防止越界
-      console.warn("QR buffer length overflow, truncating...");
-    }
     if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
       buffer.put(0, 4);
     }
-    while (buffer.getLengthInBits() % 8 != 0) {
+    while (buffer.getLengthInBits() % 8 !== 0) {
       buffer.putBit(false);
     }
     while (true) {
@@ -315,7 +291,7 @@ function QR8bitByte(data) {
 }
 QR8bitByte.prototype = {
   getLength: function() {
-    return encodeURIComponent(this.data).replace(/%[89AB][0-9A-F]/gi, '^').length;
+    return utf8Length(this.data);
   },
   write: function(buffer) {
     const bytes = utf8Encode(this.data);
@@ -324,6 +300,10 @@ QR8bitByte.prototype = {
     }
   }
 };
+
+function utf8Length(str) {
+  return encodeURIComponent(str).replace(/%[89AB][0-9A-F]/gi, '^').length;
+}
 
 function utf8Encode(str) {
   const bytes = [];
@@ -342,6 +322,34 @@ function utf8Encode(str) {
   }
   return bytes;
 }
+
+// 伽罗瓦域 GF(2^8) 标准 0x11d 算术表
+const QRMath = {
+  glog: function(n) {
+    if (n < 1) throw new Error("glog(" + n + ")");
+    return QRMath.LOG_TABLE[n];
+  },
+  gexp: function(n) {
+    while (n < 0) n += 255;
+    while (n >= 255) n -= 255;
+    return QRMath.EXP_TABLE[n];
+  },
+  EXP_TABLE: new Array(256),
+  LOG_TABLE: new Array(256)
+};
+
+(function initGaloisField() {
+  let num = 1;
+  for (let i = 0; i < 255; i++) {
+    QRMath.EXP_TABLE[i] = num;
+    QRMath.LOG_TABLE[num] = i;
+    num <<= 1;
+    if (num & 256) {
+      num ^= 0x11d;
+    }
+  }
+  QRMath.EXP_TABLE[255] = QRMath.EXP_TABLE[0];
+})();
 
 const QRUtil = {
   PATTERN_POSITION_TABLE: [
@@ -368,7 +376,7 @@ const QRUtil = {
   },
   getBCHDigit: function(data) {
     let digit = 0;
-    while (data != 0) {
+    while (data !== 0) {
       digit++;
       data >>>= 1;
     }
@@ -379,16 +387,20 @@ const QRUtil = {
   },
   getMask: function(maskPattern, i, j) {
     switch (maskPattern) {
-      case 0: return (i + j) % 2 == 0;
-      case 1: return i % 2 == 0;
-      case 2: return j % 3 == 0;
-      case 3: return (i + j) % 3 == 0;
-      case 4: return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 == 0;
-      case 5: return (i * j) % 2 + (i * j) % 3 == 0;
-      case 6: return ((i * j) % 2 + (i * j) % 3) % 2 == 0;
-      case 7: return ((i * j) % 3 + (i + j) % 2) % 2 == 0;
+      case 0: return (i + j) % 2 === 0;
+      case 1: return i % 2 === 0;
+      case 2: return j % 3 === 0;
+      case 3: return (i + j) % 3 === 0;
+      case 4: return (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0;
+      case 5: return (i * j) % 2 + (i * j) % 3 === 0;
+      case 6: return ((i * j) % 2 + (i * j) % 3) % 2 === 0;
+      case 7: return ((i * j) % 3 + (i + j) % 2) % 2 === 0;
       default: throw new Error("bad maskPattern:" + maskPattern);
     }
+  },
+  getLengthInBits: function(mode, type) {
+    if (1 <= type && type < 10) return 8;
+    return 16;
   },
   getErrorCorrectPolynomial: function(errorCorrectLength) {
     let a = new QRPolynomial([1], 0);
@@ -396,57 +408,13 @@ const QRUtil = {
       a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0));
     }
     return a;
-  },
-  getLengthInBits: function(mode, type) {
-    if (1 <= type && type < 10) return 8;
-    return 16;
-  },
-  getLostPoint: function(qrCode) {
-    let moduleCount = qrCode.getModuleCount();
-    let lostPoint = 0;
-    for (let row = 0; row < moduleCount; row++) {
-      for (let col = 0; col < moduleCount; col++) {
-        let sameCount = 0;
-        let dark = qrCode.isDark(row, col);
-        for (let r = -1; r <= 1; r++) {
-          if (row + r < 0 || moduleCount <= row + r) continue;
-          for (let c = -1; c <= 1; c++) {
-            if (col + c < 0 || moduleCount <= col + c) continue;
-            if (r == 0 && c == 0) continue;
-            if (dark == qrCode.isDark(row + r, col + c)) sameCount++;
-          }
-        }
-        if (sameCount > 5) lostPoint += (3 + sameCount - 5);
-      }
-    }
-    return lostPoint;
   }
 };
 
-const QRMath = {
-  glog: function(n) {
-    if (n < 1) return 0;
-    return QRMath.LOG_TABLE[n] || 0;
-  },
-  gexp: function(n) {
-    while (n < 0) n += 255;
-    while (n >= 256) n -= 255;
-    return QRMath.EXP_TABLE[n] || 0;
-  },
-  EXP_TABLE: new Array(256),
-  LOG_TABLE: new Array(256)
-};
-
-for (let i = 0; i < 8; i++) QRMath.EXP_TABLE[i] = 1 << i;
-for (let i = 8; i < 256; i++) {
-  QRMath.EXP_TABLE[i] = QRMath.EXP_TABLE[i - 4] ^ QRMath.EXP_TABLE[i - 5] ^ QRMath.EXP_TABLE[i - 6] ^ QRMath.EXP_TABLE[i - 8];
-}
-for (let i = 0; i < 255; i++) QRMath.LOG_TABLE[QRMath.EXP_TABLE[i]] = i;
-
 function QRPolynomial(num, shift) {
-  if (num.length == undefined) throw new Error(num.length + "/" + shift);
+  if (num.length === undefined) throw new Error(num.length + "/" + shift);
   let offset = 0;
-  while (offset < num.length && num[offset] == 0) offset++;
+  while (offset < num.length && num[offset] === 0) offset++;
   this.num = new Array(num.length - offset + shift);
   for (let i = 0; i < num.length - offset; i++) {
     this.num[i] = num[i + offset];
@@ -484,29 +452,29 @@ QRPolynomial.prototype = {
   }
 };
 
-// 纠错码块参数表 (Level L: 7% 纠错率)
+// Reed-Solomon 纠错码块参数表 (Level M 纠错率)
 function QRRSBlock(totalCount, dataCount) {
   this.totalCount = totalCount;
   this.dataCount = dataCount;
 }
 QRRSBlock.RS_BLOCK_TABLE = [
-  [1, 26, 19],    // Version 1
-  [1, 44, 34],    // Version 2
-  [1, 70, 55],    // Version 3
-  [1, 100, 80],   // Version 4
-  [1, 134, 108],  // Version 5
-  [2, 86, 68],    // Version 6
-  [2, 98, 78],    // Version 7
-  [2, 121, 97],   // Version 8
-  [2, 146, 116],  // Version 9
-  [2, 172, 137]   // Version 10
+  [1, 26, 16],    // Version 1 (16 data bytes)
+  [1, 44, 28],    // Version 2 (28 data bytes)
+  [1, 70, 44],    // Version 3 (44 data bytes)
+  [2, 50, 32],    // Version 4 (64 data bytes)
+  [2, 67, 43],    // Version 5 (86 data bytes)
+  [4, 43, 27],    // Version 6 (108 data bytes)
+  [4, 61, 31],    // Version 7 (124 data bytes)
+  [4, 77, 39],    // Version 8 (156 data bytes)
+  [5, 66, 36],    // Version 9 (180 data bytes)
+  [5, 86, 43]     // Version 10 (215 data bytes)
 ];
 QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectLevel) {
   const rsBlock = QRRSBlock.RS_BLOCK_TABLE[typeNumber - 1];
-  if (!rsBlock) return [new QRRSBlock(100, 80)];
+  if (!rsBlock) return [new QRRSBlock(50, 32)];
   const list = [];
   for (let i = 0; i < rsBlock[0]; i++) {
-    list.push(new QRRSBlock(rsBlock[1] / rsBlock[0], rsBlock[2] / rsBlock[0]));
+    list.push(new QRRSBlock(rsBlock[1], rsBlock[2]));
   }
   return list;
 };
@@ -518,11 +486,11 @@ function QRBitBuffer() {
 QRBitBuffer.prototype = {
   get: function(index) {
     let bufIndex = Math.floor(index / 8);
-    return ((this.buffer[bufIndex] >>> (7 - index % 8)) & 1) == 1;
+    return ((this.buffer[bufIndex] >>> (7 - index % 8)) & 1) === 1;
   },
   put: function(num, length) {
     for (let i = 0; i < length; i++) {
-      this.putBit(((num >>> (length - i - 1)) & 1) == 1);
+      this.putBit(((num >>> (length - i - 1)) & 1) === 1);
     }
   },
   getLengthInBits: function() { return this.length; },

@@ -1,4 +1,4 @@
-import { QRCode } from './qrcode.js';
+import { QRCode } from './qrcode.js?v=1.8.7';
 
 export const Poster = {
   renderSeats(players, maxPlayers = 4) {
