@@ -34,17 +34,30 @@ export const Store = {
 
   getUser() {
     const user = localStorage.getItem('mahjong_user');
-    return user ? JSON.parse(user) : {
+    if (user) {
+      try {
+        const parsed = JSON.parse(user);
+        // 如果旧缓存里含有历史测试数据 8 次，自动修正为 0 次
+        if (parsed.fulfilledCount === 8) {
+          parsed.fulfilledCount = 0;
+          this.saveUser(parsed);
+        }
+        return parsed;
+      } catch (e) {}
+    }
+    const defaultUser = {
       id: 'usr_me',
       name: '极简麻友',
       avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Me',
       wechat: 'my_wx_8888',
       phone: '13899990000',
-      fulfilledCount: 8,
+      fulfilledCount: 0,
       flakeCount: 0,
       isBanned: false,
       contacts: []
     };
+    this.saveUser(defaultUser);
+    return defaultUser;
   },
 
   saveUser(user) {
