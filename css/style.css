@@ -130,17 +130,33 @@ body {
 
 /* Compliance Banner */
 .compliance-banner {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
   color: #f87171;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
   font-size: 0.8rem;
   margin-bottom: 14px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  line-height: 1.4;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.compliance-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.compliance-text {
+  flex: 1;
 }
 
 /* Multi-Filter Bar */
@@ -151,22 +167,44 @@ body {
   margin-bottom: 16px;
 }
 
-.filter-row {
-  display: flex;
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
-  align-items: center;
+  width: 100%;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 8px;
+  width: 100%;
 }
 
 .filter-select {
-  flex: 1;
+  width: 100%;
   background: var(--bg-card);
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  padding: 6px 10px;
+  padding: 6px 8px;
   border-radius: var(--radius-md);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   outline: none;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
+
+.filter-btn {
+  font-size: 0.78rem !important;
+  padding: 6px 8px !important;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
 
 /* Pagination */
 .pagination-bar {

@@ -1,4 +1,5 @@
-// js/poster.js
+import { QRCode } from './qrcode.js';
+
 export const Poster = {
   renderSeats(players, maxPlayers = 4) {
     const seatsHtml = [];
@@ -41,45 +42,58 @@ export const Poster = {
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 36px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('🀄 麻友，你在哪儿？急缺1人！', 300, 100);
+    ctx.fillText('🀄 麻友，你在哪儿？急缺1人！', 300, 90);
 
     // 房间详情
     ctx.textAlign = 'left';
     ctx.fillStyle = '#f8fafc';
     ctx.font = 'bold 26px sans-serif';
-    ctx.fillText(`【${room.title}】`, 50, 180);
+    ctx.fillText(`【${room.title}】`, 50, 160);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '22px sans-serif';
-    ctx.fillText(`📍 地点：[${room.district}·${room.area}] ${room.address}`, 50, 240);
-    ctx.fillText(`⏰ 时间：${room.startTime}`, 50, 290);
-    ctx.fillText(`👤 局长：${room.host.name} (${room.host.isGold ? '⚡黄金麻友' : '守时保证'})`, 50, 340);
+    ctx.fillText(`📍 地点：[${room.district}·${room.area}] ${room.address}`, 50, 215);
+    ctx.fillText(`⏰ 时间：${room.startTime}`, 50, 260);
+    ctx.fillText(`👤 局长：${room.host.name} (${room.host.isGold ? '⚡黄金麻友' : '守时保证'})`, 50, 305);
 
     // 分隔线
     ctx.strokeStyle = '#334155';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(50, 380);
-    ctx.lineTo(550, 380);
+    ctx.moveTo(50, 340);
+    ctx.lineTo(550, 340);
     ctx.stroke();
 
     // 席位信息
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('当前车况：已到 3 人，就差你了！', 50, 430);
+    ctx.fillText(`当前车况：已到 ${room.players.length} 人，就差 ${room.maxPlayers - room.players.length} 人！`, 50, 385);
 
-    // 扫码指示区
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(150, 500, 300, 200);
+    // 绘制真实可扫描的二维码区域
+    // 如果在本地 localhost 环境，自动生成线上 GitHub Pages 真实公开可访问 URL，确保手机微信/相机扫码能正常打开！
+    let baseUrl = window.location.href.split('#')[0].split('?')[0];
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      baseUrl = 'https://jiaozi008.github.io/MaYu_where-ru/';
+    }
+    const targetUrl = `${baseUrl}?room=${room.id}`;
+    
+    // 二维码白底背板 (留白 Quiet Zone)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(210, 420, 180, 180);
 
+    // 绘制二维码矩阵
+    QRCode.drawToCanvas(ctx, targetUrl, 220, 430, 160);
+
+    // 二维码提示
     ctx.fillStyle = '#fbbf24';
-    ctx.font = 'bold 32px sans-serif';
+    ctx.font = 'bold 26px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('扫码即刻上车', 300, 610);
+    ctx.fillText('微信扫码 · 即刻免费上车', 300, 640);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '18px sans-serif';
-    ctx.fillText('无需下载 · 极简同城拼局', 300, 650);
+    ctx.fillText('无需下载 APP · 极简同城麻友搭子匹配', 300, 685);
+    ctx.fillText('⚖️ 严禁赌博 · 同城文明休闲组局', 300, 725);
 
     return canvas.toDataURL('image/png');
   },

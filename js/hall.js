@@ -24,12 +24,15 @@ export const Hall = {
     containerEl.innerHTML = `
       <!-- ⚖️ 合规防赌声明 Banner -->
       <div class="compliance-banner">
-        <span>⚖️ <strong>健康娱乐·严禁赌博：</strong>本平台仅供同城麻友休闲搭子组局匹配，严格禁止任何形式的金钱赌博行为，请文明娱乐。</span>
+        <span class="compliance-badge">⚖️ 合规倡议</span>
+        <div class="compliance-text">
+          <strong>健康娱乐·严禁赌博：</strong>本平台仅供同城麻友休闲搭子组局匹配，严格禁止任何形式的金钱赌博行为，请文明娱乐。
+        </div>
       </div>
 
-      <!-- 🔍 多维度筛选栏 (商圈 + 玩法 + 时间 + 状态) -->
+      <!-- 🔍 多维度筛选栏 (商圈 + 玩法 + 时间 + 状态 2x2 网格对齐) -->
       <div class="filter-bar">
-        <div class="filter-row">
+        <div class="filter-grid">
           <select id="area-select" class="filter-select">
             ${areas.map(a => `<option value="${a}" ${a === this.selectedArea ? 'selected' : ''}>${a}</option>`).join('')}
           </select>
@@ -48,12 +51,12 @@ export const Hall = {
           </select>
         </div>
 
-        <div class="filter-row">
-          <button id="btn-gps-upgrade" class="btn-secondary" style="font-size:0.75rem; padding:4px 8px; flex:1;">
+        <div class="action-grid">
+          <button id="btn-gps-upgrade" class="btn-secondary filter-btn">
             ${Geo.locationType === 'GPS' ? '🎯 GPS精准定位' : '🌐 IP识别(点击升级GPS)'}
           </button>
-          <button id="btn-contacts" class="btn-secondary" style="font-size:0.75rem; padding:4px 8px;">🎴 麻友盒</button>
-          <button id="btn-create-room" class="btn-primary" style="font-size:0.75rem; padding:4px 10px;">+ 快捷发局</button>
+          <button id="btn-contacts" class="btn-secondary filter-btn">🎴 麻友盒</button>
+          <button id="btn-create-room" class="btn-primary filter-btn">+ 快捷发局</button>
         </div>
       </div>
 
@@ -86,23 +89,28 @@ export const Hall = {
     const user = Store.getUser();
     const isUserJoined = room.players && room.players.some(p => p.name === user.name);
 
-    // 只有成功加入/上车该局的麻友，才触发电子围栏到场打卡逻辑
     if (!isUserJoined) {
       return `<div style="font-size:0.75rem; color:var(--text-muted); margin:4px 0;">
         📍 距目的地约 ${room.distance || 0.5}km
       </div>`;
     }
 
-    // 已加入该局的麻友：触发 GPS 电子围栏实测
-    const fence = Geo.isArrivedAtFence();
+    // 必须在开启真实 GPS 授权且目标坐标有效时才判定电子围栏
+    if (Geo.locationType !== 'GPS' || !room.coords) {
+      return `<div style="font-size:0.75rem; color:var(--text-muted); margin:4px 0;">
+        📍 距目的地约 ${room.distance || 0.5}km <span style="font-size:0.7rem; color:var(--accent-gold);">(开启 GPS 可触发电子围栏打卡)</span>
+      </div>`;
+    }
+
+    const fence = Geo.isArrivedAtFence(room.coords.lat, room.coords.lng);
     if (fence && fence.arrived) {
       return `<div style="background:rgba(16, 185, 129, 0.15); border:1px solid rgba(16, 185, 129, 0.4); color:var(--accent-green); padding:6px 10px; border-radius:var(--radius-md); font-size:0.78rem; margin:8px 0;">
         📍 <strong>GPS 电子围栏判定：</strong>您已到达目的地 (距棋牌室 ${fence.distanceMeters}m)，系统已为您自动完成到场电子签到！
       </div>`;
     } else {
-      const dist = fence ? fence.distanceMeters : 1200;
+      const dist = (fence && fence.distanceMeters !== 9999) ? `${fence.distanceMeters}m` : `${room.distance || 0.5}km`;
       return `<div style="font-size:0.75rem; color:var(--text-muted); margin:4px 0;">
-        📍 离目的地约 ${dist}m (进入 200m 范围内将触发 GPS 自动打卡)
+        📍 离目的地约 ${dist} (进入 200m 范围内将触发 GPS 自动打卡)
       </div>`;
     }
   },
@@ -130,6 +138,8 @@ export const Hall = {
     listEl.innerHTML = paginatedRooms.map(room => {
       const isFull = room.players.length >= room.maxPlayers;
       const isMerchant = room.isMerchant;
+      const user = Store.getUser();
+      const isHost = (user.id === room.host.id || user.name === room.host.name);
 
       return `
         <div class="room-card ${isMerchant ? 'merchant' : ''}" data-id="${room.id}">
@@ -156,7 +166,14 @@ export const Hall = {
               <img class="avatar-sm" src="${room.host.avatar}" />
               <span>局长：${room.host.name}</span>
               ${room.host.isGold ? '<span class="badge-gold">⚡ 黄金麻友</span>' : ''}
-              <button class="btn-secondary btn-add-contact" style="margin-left:auto; font-size:0.75rem; padding:2px 8px;" data-host='${JSON.stringify(room.host)}'>加为麻友</button>
+              ${isHost ? `
+                <div style="margin-left:auto; display:flex; gap:4px;">
+                  <button class="btn-secondary btn-edit-room" style="font-size:0.75rem; padding:2px 8px; color:var(--accent-gold); border-color:var(--accent-gold);" data-id="${room.id}">✏️ 编辑本局</button>
+                  <button class="btn-secondary btn-delete-room" style="font-size:0.75rem; padding:2px 8px; color:var(--danger); border-color:var(--danger);" data-id="${room.id}">🗑️ 解散</button>
+                </div>
+              ` : `
+                <button class="btn-secondary btn-add-contact" style="margin-left:auto; font-size:0.75rem; padding:2px 8px;" data-host='${JSON.stringify(room.host)}'>加为麻友</button>
+              `}
             </div>
           </div>
           
@@ -278,6 +295,26 @@ export const Hall = {
       const posterBtn = e.target.closest('.btn-poster');
       const addContactBtn = e.target.closest('.btn-add-contact');
       const navMapBtn = e.target.closest('.btn-nav-map');
+      const editRoomBtn = e.target.closest('.btn-edit-room');
+      const deleteRoomBtn = e.target.closest('.btn-delete-room');
+
+      if (editRoomBtn) {
+        const roomId = editRoomBtn.getAttribute('data-id');
+        const room = Store.getRooms().find(r => r.id === roomId);
+        if (room) {
+          this.showEditRoomModal(room);
+        }
+      }
+
+      if (deleteRoomBtn) {
+        const roomId = deleteRoomBtn.getAttribute('data-id');
+        if (confirm('确认解散并删除该麻将局？')) {
+          const rooms = Store.getRooms().filter(r => r.id !== roomId);
+          Store.saveRooms(rooms);
+          this.updateRoomList();
+          alert('🗑️ 本局已成功解散并移除公开大厅。');
+        }
+      }
 
       if (joinBtn) {
         const roomId = joinBtn.getAttribute('data-id');
@@ -410,9 +447,51 @@ export const Hall = {
     modal.querySelector('#btn-close-card').onclick = () => modal.remove();
   },
 
+  formatTimeRange(dateStr, startTime, endTime) {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    const tom = new Date(now);
+    tom.setDate(now.getDate() + 1);
+    const tomorrowStr = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`;
+
+    let prefix = '';
+
+    if (dateStr) {
+      // 用正则匹配精准提取 年(4位) - 月(1~2位) - 日(1~2位)
+      const match = dateStr.match(/(\d{4})[^\d]?(\d{1,2})[^\d]?(\d{1,2})/);
+      if (match) {
+        const year = match[1];
+        const month = match[2].padStart(2, '0');
+        const day = match[3].padStart(2, '0');
+        const normalized = `${year}-${month}-${day}`;
+        const mmdd = `${month}-${day}`;
+
+        if (normalized === todayStr) {
+          prefix = `今天 (${mmdd})`;
+        } else if (normalized === tomorrowStr) {
+          prefix = `明天 (${mmdd})`;
+        } else {
+          prefix = `${mmdd}`;
+        }
+      } else {
+        const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        prefix = `今天 (${mmdd})`;
+      }
+    } else {
+      const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      prefix = `今天 (${mmdd})`;
+    }
+
+    const sTime = startTime || '19:00';
+    const eTime = endTime || '23:00';
+    return `${prefix} ${sTime}-${eTime}`;
+  },
+
   showCreateRoomModal() {
     if (Credit.checkBanned()) return;
 
+    const todayStr = new Date().toISOString().split('T')[0];
     const currentArea = Geo.getCurrentArea();
     const ruleTypes = Rules.getAllRuleTypes().filter(r => r !== '全部玩法');
     const modal = document.createElement('div');
@@ -429,12 +508,12 @@ export const Hall = {
           <div>
             <label style="font-size:0.85rem; color:var(--text-muted);">麻将玩法品类：</label>
             <select id="input-ruletag" class="filter-select" style="width:100%; margin-top:4px;">
-              ${ruleTypes.map(r => `<option value="${r}">${r}</option>`).join('')}
+              ${ruleTypes.map(r => `<option value="${r}" ${r === '广东鸡平胡' ? 'selected' : ''}>${r}</option>`).join('')}
             </select>
           </div>
           <div>
             <label style="font-size:0.85rem; color:var(--text-muted);">局名/规则底分：</label>
-            <input id="input-title" type="text" class="filter-select" style="width:100%; margin-top:4px;" value="四川血战·20分底·急缺麻友" />
+            <input id="input-title" type="text" class="filter-select" style="width:100%; margin-top:4px;" value="" placeholder="如：20分底·包厢特惠·急缺2人" />
           </div>
           <div>
             <label style="font-size:0.85rem; color:var(--text-muted);">商圈自动定位：</label>
@@ -445,8 +524,13 @@ export const Hall = {
             <input id="input-address" type="text" class="filter-select" style="width:100%; margin-top:4px;" placeholder="如：胖子棋牌室 6号包厢" />
           </div>
           <div>
-            <label style="font-size:0.85rem; color:var(--text-muted);">开局时间：</label>
-            <input id="input-time" type="text" class="filter-select" style="width:100%; margin-top:4px;" value="今天 20:00" />
+            <label style="font-size:0.85rem; color:var(--text-muted);">开局日期与时间段：</label>
+            <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+              <input id="input-date" type="date" class="filter-select" style="flex:1.3;" value="${todayStr}" />
+              <input id="input-start-time" type="time" class="filter-select" style="flex:1;" value="19:00" />
+              <span style="font-size:0.8rem; color:var(--text-muted);">至</span>
+              <input id="input-end-time" type="time" class="filter-select" style="flex:1;" value="23:00" />
+            </div>
           </div>
         </div>
         <div class="modal-actions">
@@ -460,16 +544,20 @@ export const Hall = {
     modal.querySelector('#btn-cancel-create').onclick = () => modal.remove();
     modal.querySelector('#btn-submit-create').onclick = () => {
       const ruleTag = modal.querySelector('#input-ruletag').value;
-      const title = modal.querySelector('#input-title').value.trim();
+      const titleInput = modal.querySelector('#input-title').value.trim();
+      const title = titleInput || '20分底·急缺麻友';
       const address = modal.querySelector('#input-address').value.trim() || '同城棋牌室';
-      const time = modal.querySelector('#input-time').value.trim();
+      const dateVal = modal.querySelector('#input-date').value;
+      const startTimeVal = modal.querySelector('#input-start-time').value;
+      const endTimeVal = modal.querySelector('#input-end-time').value;
+      const time = this.formatTimeRange(dateVal, startTimeVal, endTimeVal);
       const user = Store.getUser();
 
       const newRoom = {
         id: 'room_' + Date.now(),
         title: `【${ruleTag}】${title}`,
-        city: '深圳市',
-        district: '南山区',
+        city: Geo.getCurrentCity(),
+        district: Geo.getCurrentArea(),
         area: currentArea,
         address,
         distance: 0.5,
@@ -499,6 +587,75 @@ export const Hall = {
       modal.remove();
       this.updateRoomList();
       alert('🚀 发局成功！已生成大厅公开局，可点击“朋友圈海报”一键生成微信社交诱饵图片！');
+    };
+  },
+
+  showEditRoomModal(room) {
+    const ruleTypes = Rules.getAllRuleTypes().filter(r => r !== '全部玩法');
+    const rawTitle = room.title.replace(/^【.*?】\s*/, '');
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-card">
+        <h3>✏️ 局长修改·本局信息</h3>
+        
+        <div style="display:flex; flex-direction:column; gap:12px; margin:12px 0;">
+          <div>
+            <label style="font-size:0.85rem; color:var(--text-muted);">麻将玩法品类：</label>
+            <select id="edit-ruletag" class="filter-select" style="width:100%; margin-top:4px;">
+              ${ruleTypes.map(r => `<option value="${r}" ${r === room.ruleTag ? 'selected' : ''}>${r}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.85rem; color:var(--text-muted);">局名/规则底分：</label>
+            <input id="edit-title" type="text" class="filter-select" style="width:100%; margin-top:4px;" value="${rawTitle}" />
+          </div>
+          <div>
+            <label style="font-size:0.85rem; color:var(--text-muted);">详细地点/棋牌室门牌：</label>
+            <input id="edit-address" type="text" class="filter-select" style="width:100%; margin-top:4px;" value="${room.address}" />
+          </div>
+          <div>
+            <label style="font-size:0.85rem; color:var(--text-muted);">开局日期与时间段：</label>
+            <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+              <input id="edit-date" type="date" class="filter-select" style="flex:1.3;" value="${todayStr}" />
+              <input id="edit-start-time" type="time" class="filter-select" style="flex:1;" value="19:00" />
+              <span style="font-size:0.8rem; color:var(--text-muted);">至</span>
+              <input id="edit-end-time" type="time" class="filter-select" style="flex:1;" value="23:00" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="btn-cancel-edit" class="btn-secondary">取消</button>
+          <button id="btn-submit-edit" class="btn-primary">保存修改</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#btn-cancel-edit').onclick = () => modal.remove();
+    modal.querySelector('#btn-submit-edit').onclick = () => {
+      const ruleTag = modal.querySelector('#edit-ruletag').value;
+      const title = modal.querySelector('#edit-title').value.trim();
+      const address = modal.querySelector('#edit-address').value.trim() || '同城棋牌室';
+      const dateVal = modal.querySelector('#edit-date').value;
+      const startTimeVal = modal.querySelector('#edit-start-time').value;
+      const endTimeVal = modal.querySelector('#edit-end-time').value;
+      const time = this.formatTimeRange(dateVal, startTimeVal, endTimeVal);
+
+      const rooms = Store.getRooms();
+      const target = rooms.find(r => r.id === room.id);
+      if (target) {
+        target.ruleTag = ruleTag;
+        target.title = `【${ruleTag}】${title}`;
+        target.address = address;
+        target.startTime = time;
+        Store.saveRooms(rooms);
+        modal.remove();
+        this.updateRoomList();
+        alert('✏️ 本局信息已成功保存修改！');
+      }
     };
   }
 };
