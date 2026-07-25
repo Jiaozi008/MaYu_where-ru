@@ -70,10 +70,10 @@ export const Poster = {
     ctx.fillText(`当前车况：已到 ${room.players.length} 人，就差 ${room.maxPlayers - room.players.length} 人！`, 50, 385);
 
     // 绘制真实可扫描的二维码区域
-    // 如果在本地 localhost 环境，自动生成线上 GitHub Pages 真实公开可访问 URL，确保手机微信/相机扫码能正常打开！
+    // 如果在本地 localhost 环境，自动使用 Cloudflare Pages 官方线上可访问 URL，确保手机微信/相机扫码能正常打开！
     let baseUrl = window.location.href.split('#')[0].split('?')[0];
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      baseUrl = 'https://jiaozi008.github.io/MaYu_where-ru/';
+      baseUrl = 'https://mayu-where-ru.pages.dev/';
     }
     const targetUrl = `${baseUrl}?room=${room.id}`;
     
