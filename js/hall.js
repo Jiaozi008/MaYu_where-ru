@@ -1,13 +1,13 @@
 ﻿// js/hall.js
-import { Store } from './store.js?v=1.8.7';
-import { Geo } from './geo.js?v=1.8.7';
-import { Credit } from './credit.js?v=1.8.7';
-import { Poster } from './poster.js?v=1.8.7';
-import { Contact } from './contact.js?v=1.8.7';
-import { Rules } from './rules.js?v=1.8.7';
-import { Nav } from './nav.js?v=1.8.7';
-import { Merchant } from './merchant.js?v=1.8.7';
-import { Alarm } from './alarm.js?v=1.8.7';
+import { Store } from './store.js?v=1.9.3';
+import { Geo } from './geo.js?v=1.9.3';
+import { Credit } from './credit.js?v=1.9.3';
+import { Poster } from './poster.js?v=1.9.3';
+import { Contact } from './contact.js?v=1.9.3';
+import { Rules } from './rules.js?v=1.9.3';
+import { Nav } from './nav.js?v=1.9.3';
+import { Merchant } from './merchant.js?v=1.9.3';
+import { Alarm } from './alarm.js?v=1.9.3';
 
 export const Hall = {
   selectedArea: '全部商圈',
@@ -655,7 +655,7 @@ export const Hall = {
           </div>
           <div>
             <label style="font-size:0.85rem; color:var(--text-muted);">📱 微信群链接（可选）：</label>
-            <input id="input-group-url" type="url" class="filter-select" style="width:100%; margin-top:4px;" placeholder="可选·粘贴微信群邀请链接，拼友上车后可直接进群" />
+            <input id="input-group-url" type="text" class="filter-select" style="width:100%; margin-top:4px;" placeholder="可选·粘贴微信群邀请链接（如 https://weixin.qq.com/...）" />
           </div>
         </div>
         <div class="modal-actions">
