@@ -140,6 +140,7 @@ export const Hall = {
       const isMerchant = room.isMerchant;
       const user = Store.getUser();
       const isHost = (user.id === room.host.id || user.name === room.host.name);
+      const isJoined = room.players.some(p => p.wechat === user.wechat || p.name === user.name);
 
       return `
         <div class="room-card ${isMerchant ? 'merchant' : ''}" data-id="${room.id}">
@@ -179,9 +180,20 @@ export const Hall = {
           
           <div style="display:flex; gap:8px; margin-top:12px;">
             <button class="btn-secondary btn-poster" style="flex:1;" data-id="${room.id}">朋友圈海报</button>
-            ${isFull ? `
+            ${isJoined ? `
+              <div style="flex:2; display:flex; gap:6px;">
+                <button class="btn-primary btn-view-contacts" style="flex:1.2; margin-top:0; background:linear-gradient(135deg, #10b981, #059669);" data-id="${room.id}">
+                  查看联络卡
+                </button>
+                ${!isHost ? `
+                  <button class="btn-secondary btn-leave" style="flex:0.8; font-size:0.78rem; padding:4px 6px; color:var(--danger); border-color:var(--danger);" data-id="${room.id}">
+                    🚪 退车
+                  </button>
+                ` : ''}
+              </div>
+            ` : isFull ? `
               <button class="btn-primary btn-view-contacts" style="flex:2; margin-top:0; background:linear-gradient(135deg, #10b981, #059669);" data-id="${room.id}">
-                ✅ 拼局成功·查看同桌联络卡
+                ✅ 满车·查看同桌联络卡
               </button>
             ` : `
               <button class="btn-join" style="flex:2; margin-top:0;" data-id="${room.id}">
@@ -240,6 +252,49 @@ export const Hall = {
     }
   },
 
+  showConflictSwitchModal(oldRoom, newRoom, rooms) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal-card">
+        <h3 style="color:var(--accent-gold);">⚠️ 上车冲突·排期独占提醒</h3>
+        
+        <div class="compliance-banner" style="margin:10px 0; background:rgba(239, 68, 68, 0.1); border-color:rgba(239, 68, 68, 0.3);">
+          <span>🛡️ <strong>守约倡议：</strong>为防止麻友多占排期放鸽子，同一用户同一时间只能加入 1 个局。</span>
+        </div>
+
+        <div style="font-size:0.85rem; color:var(--text-muted); line-height:1.6; margin:12px 0;">
+          <p style="margin-bottom:6px;">您当前已加入拼车：<br><strong style="color:var(--text-main);">【${oldRoom.title}】</strong> (${oldRoom.startTime})</p>
+          <p>准备改上车新局：<br><strong style="color:var(--accent-green);">【${newRoom.title}】</strong> (${newRoom.startTime})</p>
+        </div>
+
+        <div class="modal-actions" style="margin-top:16px;">
+          <button id="btn-cancel-switch" class="btn-secondary">保持原局</button>
+          <button id="btn-confirm-switch" class="btn-primary" style="background:linear-gradient(135deg, #ef4444, #dc2626);">自动退出旧局并上新局</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#btn-cancel-switch').onclick = () => modal.remove();
+    modal.querySelector('#btn-confirm-switch').onclick = () => {
+      const user = Store.getUser();
+      // 1. 自动退出旧局
+      oldRoom.players = oldRoom.players.filter(p => !(p.wechat === user.wechat || p.name === user.name));
+      // 2. 加入新局
+      newRoom.players.push({
+        name: user.name,
+        avatar: user.avatar,
+        wechat: user.wechat || 'my_wx_8888',
+        phone: user.phone || '13899990000'
+      });
+      Store.saveRooms(rooms);
+      modal.remove();
+      this.updateRoomList();
+      alert(`🚀 已自动帮您退出旧局【${oldRoom.title}】，成功改上新局！原局席位已及时释放给其他麻友。`);
+    };
+  },
+
   bindEvents(containerEl) {
     containerEl.querySelector('#area-select').addEventListener('change', (e) => {
       this.selectedArea = e.target.value;
@@ -291,12 +346,26 @@ export const Hall = {
 
     containerEl.querySelector('#room-list').addEventListener('click', (e) => {
       const joinBtn = e.target.closest('.btn-join');
+      const leaveBtn = e.target.closest('.btn-leave');
       const viewContactsBtn = e.target.closest('.btn-view-contacts');
       const posterBtn = e.target.closest('.btn-poster');
       const addContactBtn = e.target.closest('.btn-add-contact');
       const navMapBtn = e.target.closest('.btn-nav-map');
       const editRoomBtn = e.target.closest('.btn-edit-room');
       const deleteRoomBtn = e.target.closest('.btn-delete-room');
+
+      if (leaveBtn) {
+        const roomId = leaveBtn.getAttribute('data-id');
+        const rooms = Store.getRooms();
+        const room = rooms.find(r => r.id === roomId);
+        if (room && confirm(`确认退出【${room.title}】？退车后将让席位给其他同城麻友。`)) {
+          const user = Store.getUser();
+          room.players = room.players.filter(p => !(p.wechat === user.wechat || p.name === user.name));
+          Store.saveRooms(rooms);
+          this.updateRoomList();
+          alert('🚪 已成功退出本局！席位已释放。');
+        }
+      }
 
       if (editRoomBtn) {
         const roomId = editRoomBtn.getAttribute('data-id');
@@ -321,8 +390,17 @@ export const Hall = {
         const rooms = Store.getRooms();
         const room = rooms.find(r => r.id === roomId);
         if (room) {
+          const user = Store.getUser();
+          // 检查该用户是否已在其他匹配中/未发局完结的房间上车
+          const existingJoined = rooms.filter(r => r.id !== room.id && r.players.some(p => p.wechat === user.wechat || p.name === user.name));
+          
+          if (existingJoined.length > 0) {
+            const oldRoom = existingJoined[0];
+            this.showConflictSwitchModal(oldRoom, room, rooms);
+            return;
+          }
+
           Credit.showCommitModal(room, () => {
-            const user = Store.getUser();
             room.players.push({
               name: user.name,
               avatar: user.avatar,
