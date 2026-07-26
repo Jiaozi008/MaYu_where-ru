@@ -41,6 +41,7 @@
 - [x] 2026-07-26 10:56 v1.9.7 修正海报二维码兜底扫码链接为官方 Cloudflare Pages 线上真实生产域名 (`js/poster.js`)。☑️
 - [x] 2026-07-26 11:15 v1.9.8 朋友圈组局海报升级为全动态看板：根据缺人计算标语 + Canvas 绘制 4 格席位麻友真实头像昵称与虚位以待框 (`js/poster.js`)。☑️
 - [x] 2026-07-26 11:29 记录极简创业框架下关于跨设备身份/名声持久化（将来接入免费 Supabase/LeanCloud 实现实时拼局）的优化路线规划入档 (`.ai/context.md`, `.ai/todo.md`)。☑️
+- [ ] 待执行：v2.0 跨手机实时数据同步方案实施（基于 Supabase/LeanCloud 免费云数据库，解决 A 手机发局 B 手机看得到与跨设备实时上车问题，详细架构设计与实施计划已归档至 `docs/specs/2026-07-26-cloud-sync-design.md` 和 `docs/plans/2026-07-26-cloud-sync-plan.md`）。
 
 
 

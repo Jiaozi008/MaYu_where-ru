@@ -84,3 +84,6 @@
 - **推荐技术方案**：接入免费极简 Serverless 数据库（如 Supabase / LeanCloud / Cloudflare D1）。
   - **极简集成**：前端引入轻量 SDK，无需自建/运维 Backend 服务器。
   - **价值突破**：用户 A 在湛江手机发局，用户 B 在另一台手机打开大厅能**实时刷出 A 的局**并一键“上车”，卡片名额即时同步；用户名牌与履约信用分实现跨设备永久绑定。
+- **关联设计与实施计划**：
+  - 架构设计文档：[`docs/specs/2026-07-26-cloud-sync-design.md`](file:///d:/9%E3%80%81AI%E7%BC%96%E7%A8%8B/Antigravity%20%E8%B0%B7%E6%AD%8C%E7%BC%96%E7%A8%8B/%E9%BA%BB%E5%B0%86%E5%8C%B9%E9%85%8D/4%E3%80%81H5%E9%BA%BB%E5%8F%8B%EF%BC%8C%E4%BD%A0%E5%9C%A8%E5%93%AA%E9%87%8C/docs/specs/2026-07-26-cloud-sync-design.md)
+  - 实施计划文档：[`docs/plans/2026-07-26-cloud-sync-plan.md`](file:///d:/9%E3%80%81AI%E7%BC%96%E7%A8%8B/Antigravity%20%E8%B0%B7%E6%AD%8C%E7%BC%96%E7%A8%8B/%E9%BA%BB%E5%B0%86%E5%8C%B9%E9%85%8D/4%E3%80%81H5%E9%BA%BB%E5%8F%8B%EF%BC%8C%E4%BD%A0%E5%9C%A8%E5%93%AA%E9%87%8C/docs/plans/2026-07-26-cloud-sync-plan.md)
