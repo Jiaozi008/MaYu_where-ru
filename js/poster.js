@@ -23,7 +23,7 @@ export const Poster = {
     return `<div class="seats-grid">${seatsHtml.join('')}</div>`;
   },
 
-  generateCanvasPoster(room) {
+  async generateCanvasPoster(room) {
     const canvas = document.createElement('canvas');
     canvas.width = 600;
     canvas.height = 800;
@@ -69,26 +69,37 @@ export const Poster = {
     ctx.font = 'bold 24px sans-serif';
     ctx.fillText(`当前车况：已到 ${room.players.length} 人，就差 ${room.maxPlayers - room.players.length} 人！`, 50, 385);
 
-    // 绘制真实可扫描的二维码区域
-    // 如果在本地 localhost 环境，自动使用 Cloudflare Pages 官方线上可访问 URL，确保手机微信/相机扫码能正常打开！
-    let baseUrl = window.location.href.split('#')[0].split('?')[0];
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      baseUrl = 'https://mayu-where-ru.pages.dev/';
-    }
-    const targetUrl = `${baseUrl}?room=${room.id}`;
-    
-    // 二维码白底背板 (留白 Quiet Zone)
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(210, 420, 180, 180);
+    // 绘制二维码区域：优先绘制局长上传的微信群二维码图片
+    const userQrImage = room.wechatGroupQr || (room.wechatGroupUrl && room.wechatGroupUrl.startsWith('data:image') ? room.wechatGroupUrl : null);
+    let hasUserQr = false;
 
-    // 绘制二维码矩阵
-    QRCode.drawToCanvas(ctx, targetUrl, 220, 430, 160);
+    if (userQrImage) {
+      try {
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(205, 415, 190, 190);
+            ctx.drawImage(img, 215, 425, 170, 170);
+            hasUserQr = true;
+            resolve();
+          };
+          img.onerror = reject;
+          img.src = userQrImage;
+        });
+      } catch (e) {
+        console.warn('局长微信群二维码绘制失败，回退为网页算法二维码', e);
+        this.drawFallbackQr(ctx, room);
+      }
+    } else {
+      this.drawFallbackQr(ctx, room);
+    }
 
     // 二维码提示
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 26px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('微信扫码 · 即刻免费上车', 300, 640);
+    ctx.fillText(hasUserQr ? '微信扫码 · 长按识别入群' : '微信扫码 · 即刻免费上车', 300, 640);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '18px sans-serif';
@@ -98,14 +109,29 @@ export const Poster = {
     return canvas.toDataURL('image/png');
   },
 
-  showPosterModal(room) {
-    const dataUrl = this.generateCanvasPoster(room);
+  drawFallbackQr(ctx, room) {
+    let baseUrl = window.location.href.split('#')[0].split('?')[0];
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') {
+      baseUrl = 'https://jiaozi008.github.io/MaYu_where-ru/';
+    }
+    const targetUrl = `${baseUrl}?room=${room.id}`;
+    
+    // 二维码白底背板 (留白 Quiet Zone)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(205, 415, 190, 190);
+
+    // 绘制二维码矩阵
+    QRCode.drawToCanvas(ctx, targetUrl, 220, 430, 160);
+  },
+
+  async showPosterModal(room) {
+    const dataUrl = await this.generateCanvasPoster(room);
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
       <div class="modal-card poster-modal">
-        <h3>🀄 微信朋友圈诱饵海报</h3>
-        <p style="font-size:0.85rem; color:var(--text-muted);">长按保存图片或截图分享至微信群/朋友圈：</p>
+        <h3>🀄 微信朋友圈组局海报</h3>
+        <p style="font-size:0.85rem; color:var(--text-muted);">保存图片分享至朋友圈/微信群，快速招募同城麻友上车：</p>
         <img class="poster-preview" src="${dataUrl}" alt="海报预览" />
         <div class="modal-actions">
           <button id="btn-close-poster" class="btn-primary">关闭</button>

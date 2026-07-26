@@ -763,7 +763,7 @@ export const Hall = {
       Store.addRoom(newRoom);
       modal.remove();
       this.updateRoomList();
-      alert('🚀 发局成功！已生成大厅公开局，可点击“朋友圈海报”一键生成微信社交诱饵图片！');
+      alert('🚀 发局成功！已生成大厅公开局，可点击“朋友圈海报”一键生成微信朋友圈组局海报！');
     };
   },
 

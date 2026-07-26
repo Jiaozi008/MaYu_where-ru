@@ -1,6 +1,6 @@
 // js/app.js
-import { Store } from './store.js?v=1.9.4';
-import { Hall } from './hall.js?v=1.9.4';
+import { Store } from './store.js?v=1.9.5';
+import { Hall } from './hall.js?v=1.9.5';
 
 // 预设头像种子列表（DiceBear bottts 风格）
 const AVATAR_SEEDS = [
