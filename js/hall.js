@@ -575,12 +575,37 @@ export const Hall = {
     modal.querySelector('#btn-close-card').onclick = () => modal.remove();
   },
 
-  formatTimeRange(dateStr, startTime, endTime) {
+  getBeijingDate() {
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return new Date(now.getTime() + (now.getTimezoneOffset() + 480) * 60000);
+  },
+
+  getBeijingDateStr() {
+    const bj = this.getBeijingDate();
+    const y = bj.getFullYear();
+    const m = String(bj.getMonth() + 1).padStart(2, '0');
+    const d = String(bj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  },
+
+  getBeijingDefaultTimeRange() {
+    const bj = this.getBeijingDate();
+    let curHour = bj.getHours();
+    let startHour = curHour + 1;
+    if (startHour >= 24) startHour = 19;
+    let endHour = startHour + 4;
+    if (endHour >= 24) endHour = (endHour % 24);
+    const startStr = `${String(startHour).padStart(2, '0')}:00`;
+    const endStr = `${String(endHour).padStart(2, '0')}:00`;
+    return { startStr, endStr };
+  },
+
+  formatTimeRange(dateStr, startTime, endTime) {
+    const nowBj = this.getBeijingDate();
+    const todayStr = `${nowBj.getFullYear()}-${String(nowBj.getMonth() + 1).padStart(2, '0')}-${String(nowBj.getDate()).padStart(2, '0')}`;
     
-    const tom = new Date(now);
-    tom.setDate(now.getDate() + 1);
+    const tom = new Date(nowBj);
+    tom.setDate(nowBj.getDate() + 1);
     const tomorrowStr = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`;
 
     let prefix = '';
@@ -603,23 +628,25 @@ export const Hall = {
           prefix = `${mmdd}`;
         }
       } else {
-        const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const mmdd = `${String(nowBj.getMonth() + 1).padStart(2, '0')}-${String(nowBj.getDate()).padStart(2, '0')}`;
         prefix = `今天 (${mmdd})`;
       }
     } else {
-      const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const mmdd = `${String(nowBj.getMonth() + 1).padStart(2, '0')}-${String(nowBj.getDate()).padStart(2, '0')}`;
       prefix = `今天 (${mmdd})`;
     }
 
-    const sTime = startTime || '19:00';
-    const eTime = endTime || '23:00';
+    const { startStr: defStart, endStr: defEnd } = this.getBeijingDefaultTimeRange();
+    const sTime = startTime || defStart;
+    const eTime = endTime || defEnd;
     return `${prefix} ${sTime}-${eTime}`;
   },
 
   showCreateRoomModal() {
     if (Credit.checkBanned()) return;
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = this.getBeijingDateStr();
+    const { startStr: defaultStartTime, endStr: defaultEndTime } = this.getBeijingDefaultTimeRange();
     const currentArea = Geo.getCurrentArea();
     const ruleTypes = Rules.getAllRuleTypes().filter(r => r !== '全部玩法');
     const modal = document.createElement('div');
@@ -652,12 +679,12 @@ export const Hall = {
             <input id="input-address" type="text" class="filter-select" style="width:100%; margin-top:4px;" placeholder="如：胖子棋牌室 6号包厢" />
           </div>
           <div>
-            <label style="font-size:0.85rem; color:var(--text-muted);">⏰ 开局日期与时间段：</label>
+            <label style="font-size:0.85rem; color:var(--text-muted);">⏰ 开局日期与时间段（默认北京时间）：</label>
             <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
               <input id="input-date" type="date" class="filter-select" style="flex:1.3;" value="${todayStr}" />
-              <input id="input-start-time" type="time" class="filter-select" style="flex:1;" value="19:00" />
+              <input id="input-start-time" type="time" class="filter-select" style="flex:1;" value="${defaultStartTime}" />
               <span style="font-size:0.8rem; color:var(--text-muted);">至</span>
-              <input id="input-end-time" type="time" class="filter-select" style="flex:1;" value="23:00" />
+              <input id="input-end-time" type="time" class="filter-select" style="flex:1;" value="${defaultEndTime}" />
             </div>
           </div>
           <div>
@@ -770,7 +797,8 @@ export const Hall = {
   showEditRoomModal(room) {
     const ruleTypes = Rules.getAllRuleTypes().filter(r => r !== '全部玩法');
     const rawTitle = room.title.replace(/^【.*?】\s*/, '');
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = this.getBeijingDateStr();
+    const { startStr: defaultStartTime, endStr: defaultEndTime } = this.getBeijingDefaultTimeRange();
 
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -794,12 +822,12 @@ export const Hall = {
             <input id="edit-address" type="text" class="filter-select" style="width:100%; margin-top:4px;" value="${room.address}" />
           </div>
           <div>
-            <label style="font-size:0.85rem; color:var(--text-muted);">开局日期与时间段：</label>
+            <label style="font-size:0.85rem; color:var(--text-muted);">开局日期与时间段（北京时间）：</label>
             <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
               <input id="edit-date" type="date" class="filter-select" style="flex:1.3;" value="${todayStr}" />
-              <input id="edit-start-time" type="time" class="filter-select" style="flex:1;" value="19:00" />
+              <input id="edit-start-time" type="time" class="filter-select" style="flex:1;" value="${defaultStartTime}" />
               <span style="font-size:0.8rem; color:var(--text-muted);">至</span>
-              <input id="edit-end-time" type="time" class="filter-select" style="flex:1;" value="23:00" />
+              <input id="edit-end-time" type="time" class="filter-select" style="flex:1;" value="${defaultEndTime}" />
             </div>
           </div>
           <div>

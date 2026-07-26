@@ -6,7 +6,9 @@ export const Store = {
   generateSecretCode(roomId, playerIndex) {
     const colors = ['红', '蓝', '绿', '金', '银', '紫', '橙', '白'];
     const animals = ['虎', '龙', '凤', '鲤', '鹰', '狼', '熊', '豹'];
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const bjDate = new Date(now.getTime() + (now.getTimezoneOffset() + 480) * 60000);
+    const today = `${bjDate.getFullYear()}-${String(bjDate.getMonth() + 1).padStart(2, '0')}-${String(bjDate.getDate()).padStart(2, '0')}`;
     const seed = `${today}-${roomId}-${playerIndex}`;
     let hash = 0;
     for (let i = 0; i < seed.length; i++) {
