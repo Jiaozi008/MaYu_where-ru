@@ -112,7 +112,7 @@ export const Poster = {
   drawFallbackQr(ctx, room) {
     let baseUrl = window.location.href.split('#')[0].split('?')[0];
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:') {
-      baseUrl = 'https://jiaozi008.github.io/MaYu_where-ru/';
+      baseUrl = 'https://mayu-where-ru.pages.dev/';
     }
     const targetUrl = `${baseUrl}?room=${room.id}`;
     
