@@ -1,4 +1,4 @@
-﻿// js/hall.js
+// js/hall.js
 import { Store } from './store.js?v=1.9.3';
 import { Geo } from './geo.js?v=1.9.3';
 import { Credit } from './credit.js?v=1.9.3';
@@ -471,13 +471,20 @@ export const Hall = {
           </p>
         </div>
 
-        <!-- 📱 微信群入口（如局长填写了群链接） -->
-        ${room.wechatGroupUrl ? `
+        <!-- 📱 微信群二维码/链接入口（如局长上传了微信群图片或填了链接） -->
+        ${(room.wechatGroupQr || (room.wechatGroupUrl && room.wechatGroupUrl.startsWith('data:image'))) ? `
+        <div style="margin:10px 0; background:var(--bg-primary); border:1px solid rgba(7, 193, 96, 0.3); border-radius:var(--radius-md); padding:12px; text-align:center;">
+          <div style="font-size:0.85rem; font-weight:bold; color:#07c160; margin-bottom:8px;">💬 局长的麻友微信群二维码</div>
+          <div style="width:160px; height:160px; margin:0 auto; background:#fff; padding:6px; border-radius:8px; box-shadow:var(--shadow-sm);">
+            <img src="${room.wechatGroupQr || room.wechatGroupUrl}" alt="微信群二维码" style="width:100%; height:100%; object-fit:contain; display:block;" />
+          </div>
+          <div style="font-size:0.72rem; color:var(--text-muted); margin-top:8px;">📱 长按二维码识别或保存图片入群</div>
+        </div>` : (room.wechatGroupUrl ? `
         <div style="margin:6px 0;">
           <a id="btn-join-group" href="${room.wechatGroupUrl}" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-align:center; padding:7px 0; font-size:0.85rem; background:linear-gradient(135deg, #07c160, #05a050); text-decoration:none;">
             💬 点击进入局长的麻友群
           </a>
-        </div>` : ''}
+        </div>` : '')}
 
         <div class="compliance-banner" style="margin:8px 0; font-size:0.75rem;">
           <span>⚖️ 提醒：请线下文明娱乐，严禁任何形式赌博。如遇违法行为请及时举报。</span>
@@ -654,8 +661,16 @@ export const Hall = {
             </div>
           </div>
           <div>
-            <label style="font-size:0.85rem; color:var(--text-muted);">📱 微信群链接（可选）：</label>
-            <input id="input-group-url" type="text" class="filter-select" style="width:100%; margin-top:4px;" placeholder="可选·粘贴微信群邀请链接（如 https://weixin.qq.com/...）" />
+            <label style="font-size:0.85rem; color:var(--text-muted);">📷 微信群二维码图片（可选）：</label>
+            <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
+              <input id="input-group-qr-file" type="file" accept="image/*" style="display:none;" />
+              <button type="button" id="btn-upload-qr" class="btn-secondary" style="font-size:0.8rem; padding:6px 12px;">🖼️ 选择微信群二维码图片</button>
+              <span id="qr-file-name" style="font-size:0.75rem; color:var(--text-muted);">未选择图片</span>
+            </div>
+            <div id="qr-preview-container" style="display:none; margin-top:8px; position:relative; width:100px; height:100px; border:1px dashed var(--border-color); border-radius:var(--radius-md); overflow:hidden;">
+              <img id="qr-preview-img" src="" style="width:100%; height:100%; object-fit:cover;" />
+              <button type="button" id="btn-remove-qr" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.6); color:#fff; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>
           </div>
         </div>
         <div class="modal-actions">
@@ -665,6 +680,41 @@ export const Hall = {
       </div>
     `;
     document.body.appendChild(modal);
+
+    let groupQrDataUrl = '';
+    const qrInput = modal.querySelector('#input-group-qr-file');
+    const btnUploadQr = modal.querySelector('#btn-upload-qr');
+    const qrFileName = modal.querySelector('#qr-file-name');
+    const qrPreviewContainer = modal.querySelector('#qr-preview-container');
+    const qrPreviewImg = modal.querySelector('#qr-preview-img');
+    const btnRemoveQr = modal.querySelector('#btn-remove-qr');
+
+    btnUploadQr.onclick = () => qrInput.click();
+
+    qrInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        alert('请选择图片文件！');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        groupQrDataUrl = event.target.result;
+        qrPreviewImg.src = groupQrDataUrl;
+        qrPreviewContainer.style.display = 'block';
+        qrFileName.textContent = file.name;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    btnRemoveQr.onclick = () => {
+      groupQrDataUrl = '';
+      qrInput.value = '';
+      qrPreviewImg.src = '';
+      qrPreviewContainer.style.display = 'none';
+      qrFileName.textContent = '未选择图片';
+    };
 
     modal.querySelector('#btn-cancel-create').onclick = () => modal.remove();
     modal.querySelector('#btn-submit-create').onclick = () => {
@@ -676,7 +726,6 @@ export const Hall = {
       const startTimeVal = modal.querySelector('#input-start-time').value;
       const endTimeVal = modal.querySelector('#input-end-time').value;
       const time = this.formatTimeRange(dateVal, startTimeVal, endTimeVal);
-      const groupUrl = modal.querySelector('#input-group-url').value.trim();
       const user = Store.getUser();
 
       const newRoom = {
@@ -689,7 +738,8 @@ export const Hall = {
         distance: 0.5,
         ruleTag,
         isMerchant: false,
-        wechatGroupUrl: groupUrl,
+        wechatGroupUrl: groupQrDataUrl,
+        wechatGroupQr: groupQrDataUrl,
         host: {
           id: user.id,
           name: user.name,
@@ -752,6 +802,18 @@ export const Hall = {
               <input id="edit-end-time" type="time" class="filter-select" style="flex:1;" value="23:00" />
             </div>
           </div>
+          <div>
+            <label style="font-size:0.85rem; color:var(--text-muted);">📷 微信群二维码图片（可选）：</label>
+            <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
+              <input id="edit-group-qr-file" type="file" accept="image/*" style="display:none;" />
+              <button type="button" id="btn-edit-upload-qr" class="btn-secondary" style="font-size:0.8rem; padding:6px 12px;">🖼️ 更换/上传微信群二维码</button>
+              <span id="edit-qr-file-name" style="font-size:0.75rem; color:var(--text-muted);">${(room.wechatGroupQr || room.wechatGroupUrl) ? '已上传二维码' : '未选择图片'}</span>
+            </div>
+            <div id="edit-qr-preview-container" style="display:${(room.wechatGroupQr || room.wechatGroupUrl) ? 'block' : 'none'}; margin-top:8px; position:relative; width:100px; height:100px; border:1px dashed var(--border-color); border-radius:var(--radius-md); overflow:hidden;">
+              <img id="edit-qr-preview-img" src="${room.wechatGroupQr || room.wechatGroupUrl || ''}" style="width:100%; height:100%; object-fit:cover;" />
+              <button type="button" id="btn-edit-remove-qr" style="position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.6); color:#fff; border:none; border-radius:50%; width:20px; height:20px; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>
+          </div>
         </div>
         <div class="modal-actions">
           <button id="btn-cancel-edit" class="btn-secondary">取消</button>
@@ -760,6 +822,41 @@ export const Hall = {
       </div>
     `;
     document.body.appendChild(modal);
+
+    let editGroupQrDataUrl = room.wechatGroupQr || room.wechatGroupUrl || '';
+    const editQrInput = modal.querySelector('#edit-group-qr-file');
+    const btnEditUploadQr = modal.querySelector('#btn-edit-upload-qr');
+    const editQrFileName = modal.querySelector('#edit-qr-file-name');
+    const editQrPreviewContainer = modal.querySelector('#edit-qr-preview-container');
+    const editQrPreviewImg = modal.querySelector('#edit-qr-preview-img');
+    const btnEditRemoveQr = modal.querySelector('#btn-edit-remove-qr');
+
+    btnEditUploadQr.onclick = () => editQrInput.click();
+
+    editQrInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        alert('请选择图片文件！');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        editGroupQrDataUrl = event.target.result;
+        editQrPreviewImg.src = editGroupQrDataUrl;
+        editQrPreviewContainer.style.display = 'block';
+        editQrFileName.textContent = file.name;
+      };
+      reader.readAsDataURL(file);
+    };
+
+    btnEditRemoveQr.onclick = () => {
+      editGroupQrDataUrl = '';
+      editQrInput.value = '';
+      editQrPreviewImg.src = '';
+      editQrPreviewContainer.style.display = 'none';
+      editQrFileName.textContent = '未选择图片';
+    };
 
     modal.querySelector('#btn-cancel-edit').onclick = () => modal.remove();
     modal.querySelector('#btn-submit-edit').onclick = () => {
@@ -778,6 +875,8 @@ export const Hall = {
         target.title = `【${ruleTag}】${title}`;
         target.address = address;
         target.startTime = time;
+        target.wechatGroupQr = editGroupQrDataUrl;
+        target.wechatGroupUrl = editGroupQrDataUrl;
         Store.saveRooms(rooms);
         modal.remove();
         this.updateRoomList();
